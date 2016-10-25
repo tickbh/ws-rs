@@ -12,10 +12,11 @@ version = "0.5.3"
 [dependencies]
 httparse = "1.1.2"
 log = "0.3.6"
-mio = "0.5.1"
+mio = { branch="v0.5.x", git = "https://github.com/tickbh/mio.git"}
 rand = "0.3.14"
 sha1 = "0.2.0"
 url = "1.2.0"
+td_revent = "0.1.5"
 
 [dependencies.libc]
 optional = true

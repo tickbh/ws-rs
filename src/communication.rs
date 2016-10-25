@@ -46,6 +46,7 @@ impl Command {
 #[derive(Debug, Clone)]
 pub struct Sender {
     token: Token,
+    fd: i32,
     channel: mio::Sender<Command>,
 }
 
@@ -56,9 +57,21 @@ impl Sender {
     pub fn new(token: Token, channel: mio::Sender<Command>) -> Sender {
         Sender {
             token: token,
+            fd: 0,
             channel: channel,
         }
     }
+
+    #[doc(hidden)]
+    #[inline]
+    pub fn new_socket(token: Token, fd: i32, channel: mio::Sender<Command>) -> Sender {
+        Sender {
+            token: token,
+            fd: fd,
+            channel: channel,
+        }
+    }
+
 
     /// A Token identifying this sender within the WebSocket.
     #[inline]

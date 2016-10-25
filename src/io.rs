@@ -124,7 +124,7 @@ impl<F> Handler<F>
             let factory = &mut self.factory;
 
             try!(self.connections.insert_with(|tok| {
-                let handler = factory.client_connected(Sender::new(tok, eloop.channel()));
+                let handler = factory.client_connected(Sender::new_socket(tok, sock.as_fd(), eloop.channel()));
                 Connection::new(tok, sock, handler, settings)
             }).ok_or(Error::new(Kind::Capacity, "Unable to add another connection to the event loop.")))
         };
@@ -190,9 +190,8 @@ impl<F> Handler<F>
                 }
             }
             let factory = &mut self.factory;
-
             try!(self.connections.insert_with(|tok| {
-                let handler = factory.client_connected(Sender::new(tok, eloop.channel()));
+                let handler = factory.client_connected(Sender::new_socket(tok, sock.as_fd(), eloop.channel()));
                 Connection::new(tok, sock, handler, settings)
             }).ok_or(Error::new(Kind::Capacity, "Unable to add another connection to the event loop.")))
         };
@@ -229,7 +228,7 @@ impl<F> Handler<F>
         let settings = self.settings;
 
         let tok = try!(self.connections.insert_with(|tok| {
-            let handler = factory.server_connected(Sender::new(tok, eloop.channel()));
+            let handler = factory.server_connected(Sender::new_socket(tok, sock.as_fd(), eloop.channel()));
             Connection::new(tok, sock, handler, settings)
         }).ok_or(Error::new(Kind::Capacity, "Unable to add another connection to the event loop.")));
 
@@ -261,7 +260,7 @@ impl<F> Handler<F>
         let settings = self.settings;
 
         let tok = try!(self.connections.insert_with(|tok| {
-            let handler = factory.server_connected(Sender::new(tok, eloop.channel()));
+            let handler = factory.server_connected(Sender::new_socket(tok, sock.as_fd(), eloop.channel()));
             Connection::new(tok, sock, handler, settings)
         }).ok_or(Error::new(Kind::Capacity, "Unable to add another connection to the event loop.")));
 

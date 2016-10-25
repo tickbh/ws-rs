@@ -13,6 +13,8 @@ extern crate url;
 #[cfg(feature="ssl")] extern crate openssl;
 #[macro_use] extern crate log;
 
+extern crate td_revent;
+
 mod result;
 mod connection;
 mod handler;
