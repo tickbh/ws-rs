@@ -577,6 +577,10 @@ impl<H> Connection<H>
                         }
                         self.error(err)
                     }
+                    if self.in_buffer.get_ref().len() == self.in_buffer.position() {
+                        self.in_buffer.get_mut().clear();
+                        self.in_buffer.set_position(0);
+                    }
                 }
                 Ok(())
             };
@@ -987,8 +991,10 @@ impl<H> Connection<H>
     fn buffer_in(&mut self) -> Result<Option<usize>> {
 
         trace!("Reading buffer for connection to {}.", self.peer_addr());
-        if let Some(len) = try!(self.socket.try_read_buf(self.in_buffer.get_mut())) {
+        let mut sum : usize = 0;
+        while let Some(len) = try!(self.socket.try_read_buf(self.in_buffer.get_mut())) {
             trace!("Buffered {}.", len);
+            sum += len;
             if self.in_buffer.get_ref().len() == self.in_buffer.get_ref().capacity() {
                 // extend
                 let mut new = Vec::with_capacity(self.in_buffer.get_ref().capacity());
@@ -1010,12 +1016,14 @@ impl<H> Connection<H>
             }
 
             if len == 0 {
-                Ok(None)
-            } else {
-                Ok(Some(len))
+                break;
             }
-        } else {
+        }
+
+        if sum == 0 {
             Ok(None)
+        } else {
+            Ok(Some(sum))
         }
     }
 }

@@ -79,6 +79,11 @@ impl Sender {
         self.token
     }
 
+    #[inline]
+    pub fn fd(&self) -> i32 {
+        self.fd
+    }
+
     /// Send a message over the connection.
     #[inline]
     pub fn send<M>(&self, msg: M) -> Result<()>

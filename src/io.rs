@@ -161,7 +161,7 @@ impl<F> Handler<F>
             self.connections[tok].socket(),
             self.connections[tok].token(),
             self.connections[tok].events(),
-            PollOpt::edge() | PollOpt::oneshot(),
+            PollOpt::level(),
         ).map_err(Error::from).or_else(|err| {
             error!("Encountered error while trying to build WebSocket connection: {}", err);
             let handler = self.connections.remove(tok).unwrap().consume();
@@ -213,7 +213,7 @@ impl<F> Handler<F>
             self.connections[tok].socket(),
             self.connections[tok].token(),
             self.connections[tok].events(),
-            PollOpt::edge() | PollOpt::oneshot(),
+            PollOpt::level(),
         ).map_err(Error::from).or_else(|err| {
             error!("Encountered error while trying to build WebSocket connection: {}", err);
             let handler = self.connections.remove(tok).unwrap().consume();
@@ -243,7 +243,7 @@ impl<F> Handler<F>
             conn.socket(),
             conn.token(),
             conn.events(),
-            PollOpt::edge() | PollOpt::oneshot(),
+            PollOpt::level(),
         ).map_err(Error::from).or_else(|err| {
             error!("Encountered error while trying to build WebSocket connection: {}", err);
             conn.error(err);
@@ -275,7 +275,7 @@ impl<F> Handler<F>
             conn.socket(),
             conn.token(),
             conn.events(),
-            PollOpt::edge() | PollOpt::oneshot(),
+            PollOpt::level(),
         ).map_err(Error::from).or_else(|err| {
             error!("Encountered error while trying to build WebSocket connection: {}", err);
             conn.error(err);
@@ -293,7 +293,7 @@ impl<F> Handler<F>
             conn.socket(),
             conn.token(),
             conn.events(),
-            PollOpt::edge() | PollOpt::oneshot()
+            PollOpt::level()
         )))
     }
 
@@ -367,7 +367,7 @@ impl<F> mio::Handler for Handler <F>
                                             self.connections[token].socket(),
                                             self.connections[token].token(),
                                             self.connections[token].events(),
-                                            PollOpt::edge() | PollOpt::oneshot(),
+                                            PollOpt::level(),
                                         ).or_else(|err| {
                                             self.connections[token].error(Error::from(err));
                                             let handler = self.connections.remove(token).unwrap().consume();
