@@ -577,7 +577,7 @@ impl<H> Connection<H>
                         }
                         self.error(err)
                     }
-                    if self.in_buffer.get_ref().len() == self.in_buffer.position() {
+                    if self.in_buffer.get_ref().len() as u64 == self.in_buffer.position() {
                         self.in_buffer.get_mut().clear();
                         self.in_buffer.set_position(0);
                     }
