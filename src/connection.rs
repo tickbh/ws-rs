@@ -577,10 +577,6 @@ impl<H> Connection<H>
                         }
                         self.error(err)
                     }
-                    if self.in_buffer.get_ref().len() as u64 == self.in_buffer.position() {
-                        self.in_buffer.get_mut().clear();
-                        self.in_buffer.set_position(0);
-                    }
                 }
                 Ok(())
             };
@@ -1000,19 +996,21 @@ impl<H> Connection<H>
                 let mut new = Vec::with_capacity(self.in_buffer.get_ref().capacity());
                 new.extend(&self.in_buffer.get_ref()[self.in_buffer.position() as usize ..]);
                 if new.len() == new.capacity() {
-                    if self.settings.in_buffer_grow {
-                        new.reserve(self.settings.in_buffer_capacity);
-                    } else {
+                    if !self.settings.in_buffer_grow {
                         return Err(Error::new(Kind::Capacity, "Maxed out input buffer for connection."))
                     }
-
+                    if new.capacity() == self.settings.in_buffer_capacity {
+                        return Err(Error::new(Kind::Capacity, "Maxed out input buffer for connection."))
+                    }
+                    let now_len = new.len();
+                    new.reserve(::std::cmp::min(self.settings.in_buffer_capacity, now_len * 2));
                     self.in_buffer = Cursor::new(new);
                     // return now so that hopefully we will consume some of the buffer so this
                     // won't happen next time
                     trace!("Buffered {}.", len);
-                    return Ok(Some(len))
+                } else {
+                    self.in_buffer = Cursor::new(new);
                 }
-                self.in_buffer = Cursor::new(new);
             }
 
             if len == 0 {
