@@ -256,29 +256,30 @@ impl<F> Handler<F>
 
     #[cfg(not(feature="ssl"))]
     pub fn accept(&mut self, eloop: &mut Loop<F>, sock: TcpStream) -> Result<()> {
-        let factory = &mut self.factory;
         let settings = self.settings;
+        let tok = {
+            let factory = &mut self.factory;
+            try!(self.connections.insert_with(|tok| {
+                let handler = factory.server_connected(Sender::new_socket(tok, sock.as_fd(), eloop.channel()));
+                Connection::new(tok, sock, handler, settings)
+            }).ok_or(Error::new(Kind::Capacity, "Unable to add another connection to the event loop.")))
+        };
 
-        let tok = try!(self.connections.insert_with(|tok| {
-            let handler = factory.server_connected(Sender::new_socket(tok, sock.as_fd(), eloop.channel()));
-            Connection::new(tok, sock, handler, settings)
-        }).ok_or(Error::new(Kind::Capacity, "Unable to add another connection to the event loop.")));
-
-        let conn = &mut self.connections[tok];
-
-        try!(conn.as_server());
+        try!(self.connections[tok].as_server());
         if settings.encrypt_server {
             return Err(Error::new(Kind::Protocol, "The ssl feature is not enabled. Please enable it to use wss urls."))
         }
 
         eloop.register(
-            conn.socket(),
-            conn.token(),
-            conn.events(),
+            self.connections[tok].socket(),
+            self.connections[tok].token(),
+            self.connections[tok].events(),
             PollOpt::edge() | PollOpt::oneshot(),
         ).map_err(Error::from).or_else(|err| {
             error!("Encountered error while trying to build WebSocket connection: {}", err);
-            conn.error(err);
+            self.connections[tok].error(err);
+            let handler = self.connections.remove(tok).unwrap().consume();
+            self.factory.connection_lost(handler);
             if settings.panic_on_new_connection {
                 panic!("Encountered error while trying to build WebSocket connection.");
             }
