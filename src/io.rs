@@ -550,9 +550,17 @@ impl<F> mio::Handler for Handler <F>
                         dead.push((conn.token(), err))
                     }
                 }
+
+                let mut token_dead = ::std::collections::HashSet::<mio::Token>::new();
                 for (token, err) in dead {
+                    token_dead.insert(token);
                     // note the same connection may be called twice
-                    self.connections[token].error(err)
+                    self.connections[token].error(err);
+                }
+
+                for token in &token_dead {
+                    let handler = self.connections.remove(*token).unwrap().consume();
+                    self.factory.connection_lost(handler);
                 }
             }
             token => {
@@ -640,7 +648,9 @@ impl<F> mio::Handler for Handler <F>
 
                 if let Some(_) = self.connections.get(token) {
                     if let Err(err) = self.schedule(eloop, &self.connections[token]) {
-                        self.connections[token].error(err)
+                        self.connections[token].error(err);
+                        let handler = self.connections.remove(token).unwrap().consume();
+                        self.factory.connection_lost(handler);
                     }
                 }
             }
