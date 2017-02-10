@@ -565,11 +565,13 @@ impl<F> mio::Handler for Handler <F>
                 }
             }
             token => {
+                let mut is_dead = false;
                 match cmd.into_signal() {
                     Signal::Message(msg) => {
                         if let Some(conn) = self.connections.get_mut(token) {
                             if let Err(err) = conn.send_message(msg) {
-                                conn.error(err)
+                                conn.error(err);
+                                is_dead = true;
                             }
                         } else {
                             trace!("Connection disconnected while a message was waiting in the queue.")
@@ -578,7 +580,8 @@ impl<F> mio::Handler for Handler <F>
                     Signal::Close(code, reason) => {
                         if let Some(conn) = self.connections.get_mut(token) {
                             if let Err(err) = conn.send_close(code, reason) {
-                                conn.error(err)
+                                conn.error(err);
+                                is_dead = true;
                             }
                         } else {
                             trace!("Connection disconnected while close signal was waiting in the queue.")
@@ -587,7 +590,8 @@ impl<F> mio::Handler for Handler <F>
                     Signal::Ping(data) => {
                         if let Some(conn) = self.connections.get_mut(token) {
                             if let Err(err) = conn.send_ping(data) {
-                                conn.error(err)
+                                conn.error(err);
+                                is_dead = true;
                             }
                         } else {
                             trace!("Connection disconnected while ping signal was waiting in the queue.")
@@ -596,7 +600,8 @@ impl<F> mio::Handler for Handler <F>
                     Signal::Pong(data) => {
                         if let Some(conn) = self.connections.get_mut(token) {
                             if let Err(err) = conn.send_pong(data) {
-                                conn.error(err)
+                                conn.error(err);
+                                is_dead = true;
                             }
                         } else {
                             trace!("Connection disconnected while pong signal was waiting in the queue.")
@@ -625,7 +630,8 @@ impl<F> mio::Handler for Handler <F>
                             Ok(timeout) => {
                                 if let Some(conn) = self.connections.get_mut(token) {
                                     if let Err(err) = conn.new_timeout(event, timeout) {
-                                        conn.error(err)
+                                        conn.error(err);
+                                        is_dead = true;
                                     }
                                 } else {
                                     trace!("Connection disconnected while pong signal was waiting in the queue.")
@@ -633,11 +639,16 @@ impl<F> mio::Handler for Handler <F>
                             }
                             Err(err) => {
                                 if let Some(conn) = self.connections.get_mut(token) {
-                                    conn.error(err)
+                                    conn.error(err);
+                                    is_dead = true;
                                 } else {
                                     trace!("Connection disconnected while pong signal was waiting in the queue.")
                                 }
                             }
+                        }
+                        if is_dead {
+                            let handler = self.connections.remove(token).unwrap().consume();
+                            self.factory.connection_lost(handler);
                         }
                         return
                     }
@@ -645,6 +656,12 @@ impl<F> mio::Handler for Handler <F>
                         eloop.clear_timeout(timeout);
                         return
                     }
+                }
+
+                if is_dead {
+                    let handler = self.connections.remove(token).unwrap().consume();
+                    self.factory.connection_lost(handler);
+                    return;
                 }
 
                 if let Some(_) = self.connections.get(token) {
