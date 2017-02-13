@@ -270,7 +270,7 @@ impl<F> Handler<F>
             return Err(Error::new(Kind::Protocol, "The ssl feature is not enabled. Please enable it to use wss urls."))
         }
 
-        println!("Show Webscoket Connections count = {:?}", self.connections.count());
+        println!("Ws-rs Show Webscoket Connections count = {:?}", self.connections.count());
 
         eloop.register(
             self.connections[tok].socket(),
@@ -292,6 +292,11 @@ impl<F> Handler<F>
     #[inline]
     fn schedule(&self, eloop: &mut Loop<F>, conn: &Conn<F>) -> Result<()> {
         trace!("Scheduling connection to {} as {:?}", conn.socket().peer_addr().map(|addr| addr.to_string()).unwrap_or("UNKNOWN".into()), conn.events());
+
+        if !conn.events().is_readable() && !conn.events().is_writable() {
+            println!("Ws-rs Websocket error!!!!!!! write and read all null");
+            return Err(Error::new(Kind::Internal, "Invalid Net write read info!"));
+        }
         Ok(try!(eloop.reregister(
             conn.socket(),
             conn.token(),
