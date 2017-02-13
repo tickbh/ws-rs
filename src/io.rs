@@ -266,6 +266,7 @@ impl<F> Handler<F>
         };
 
         try!(self.connections[tok].as_server());
+        trace!("accept connection token={:?}.", tok);
         if settings.encrypt_server {
             return Err(Error::new(Kind::Protocol, "The ssl feature is not enabled. Please enable it to use wss urls."))
         }
@@ -290,11 +291,6 @@ impl<F> Handler<F>
     #[inline]
     fn schedule(&self, eloop: &mut Loop<F>, conn: &Conn<F>) -> Result<()> {
         trace!("Scheduling connection to {} as {:?}", conn.socket().peer_addr().map(|addr| addr.to_string()).unwrap_or("UNKNOWN".into()), conn.events());
-
-        if !conn.events().is_readable() && !conn.events().is_writable() {
-            println!("Ws-rs Websocket error!!!!!!! write and read all null");
-            return Err(Error::new(Kind::Internal, "Invalid Net write read info!"));
-        }
         Ok(try!(eloop.reregister(
             conn.socket(),
             conn.token(),
@@ -348,7 +344,7 @@ impl<F> Handler<F>
 
     #[inline]
     fn check_count(&mut self, eloop: &mut Loop<F>) {
-        println!("Ws-rs Active connections {:?}", self.connections.count());
+        trace!("Ws-rs Active connections {:?}", self.connections.count());
         if self.connections.count() == 0 {
             if !self.state.is_active() {
                 debug!("Shutting down websocket server.");
