@@ -484,7 +484,7 @@ impl<H> Connection<H>
                             trace!("Handshake request received: \n{}", request);
                             let response = try!(self.handler.on_request(request));
                             try!(response.format(res.get_mut()));
-                            self.events.remove(EventSet::readable());
+                            // self.events.remove(EventSet::readable());
                             self.events.insert(EventSet::writable());
                         }
                     }
@@ -582,7 +582,7 @@ impl<H> Connection<H>
             };
 
             if self.socket.is_negotiating() && res.is_ok() {
-                self.events.remove(EventSet::readable());
+                // self.events.remove(EventSet::readable());
                 self.events.insert(EventSet::writable());
             }
             res
