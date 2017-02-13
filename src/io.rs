@@ -316,6 +316,14 @@ impl<F> Handler<F>
         }
     }
 
+
+    #[inline]
+    fn remove_handle(&mut self, token: Token) {
+        trace!("remove_handle connection token={:?}.", token);
+        let handler = self.connections.remove(token).unwrap().consume();
+        self.factory.connection_lost(handler);
+    }
+
     #[inline]
     fn check_active(&mut self, eloop: &mut Loop<F>, active: bool, token: Token) {
 
@@ -328,14 +336,12 @@ impl<F> Handler<F>
             } else {
                 trace!("WebSocket connection to token={:?} disconnected.", token);
             }
-            let handler = self.connections.remove(token).unwrap().consume();
-            self.factory.connection_lost(handler);
+            self.remove_handle(token);
         } else {
             self.schedule(eloop, &self.connections[token]).or_else(|err| {
                 // This will be an io error, so disconnect will already be called
                 self.connections[token].error(Error::from(err));
-                let handler = self.connections.remove(token).unwrap().consume();
-                self.factory.connection_lost(handler);
+                self.remove_handle(token);
                 Ok::<(), Error>(())
             }).unwrap()
         }
@@ -413,8 +419,7 @@ impl<F> mio::Handler for Handler <F>
                                             PollOpt::edge() | PollOpt::oneshot(),
                                         ).or_else(|err| {
                                             self.connections[token].error(Error::from(err));
-                                            let handler = self.connections.remove(token).unwrap().consume();
-                                            self.factory.connection_lost(handler);
+                                            self.remove_handle(token);
                                             Ok::<(), Error>(())
                                         }).unwrap();
                                         return
@@ -431,13 +436,11 @@ impl<F> mio::Handler for Handler <F>
                         self.connections[token].disconnect();
                     }
                     trace!("Dropping connection token={:?}.", token);
-                    let handler = self.connections.remove(token).unwrap().consume();
-                    self.factory.connection_lost(handler);
+                    self.remove_handle(token);
                 } else if events.is_hup() {
                     trace!("Connection token={:?} hung up.", token);
                     self.connections[token].disconnect();
-                    let handler = self.connections.remove(token).unwrap().consume();
-                    self.factory.connection_lost(handler);
+                    self.remove_handle(token);
                 } else {
 
                     let active = {
@@ -652,8 +655,7 @@ impl<F> mio::Handler for Handler <F>
                             }
                         }
                         if is_dead {
-                            let handler = self.connections.remove(token).unwrap().consume();
-                            self.factory.connection_lost(handler);
+                            self.remove_handle(token);
                         }
                         return
                     }
@@ -664,16 +666,14 @@ impl<F> mio::Handler for Handler <F>
                 }
 
                 if is_dead {
-                    let handler = self.connections.remove(token).unwrap().consume();
-                    self.factory.connection_lost(handler);
+                    self.remove_handle(token);
                     return;
                 }
 
                 if let Some(_) = self.connections.get(token) {
                     if let Err(err) = self.schedule(eloop, &self.connections[token]) {
                         self.connections[token].error(err);
-                        let handler = self.connections.remove(token).unwrap().consume();
-                        self.factory.connection_lost(handler);
+                        self.remove_handle(token);
                     }
                 }
             }
