@@ -350,7 +350,7 @@ impl<F> Handler<F>
 
     #[inline]
     fn check_count(&mut self, eloop: &mut Loop<F>) {
-        trace!("Ws-rs Active connections {:?}", self.connections.count());
+        trace!("Ws-rs Active connections {:?}", self.connections);
         if self.connections.count() == 0 {
             if !self.state.is_active() {
                 debug!("Shutting down websocket server.");
