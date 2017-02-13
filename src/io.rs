@@ -257,6 +257,7 @@ impl<F> Handler<F>
     #[cfg(not(feature="ssl"))]
     pub fn accept(&mut self, eloop: &mut Loop<F>, sock: TcpStream) -> Result<()> {
         let settings = self.settings;
+        let fd = sock.as_fd();
         let tok = {
             let factory = &mut self.factory;
             try!(self.connections.insert_with(|tok| {
@@ -266,7 +267,7 @@ impl<F> Handler<F>
         };
 
         try!(self.connections[tok].as_server());
-        trace!("accept connection token={:?}.", tok);
+        trace!("accept connection token={:?} fd={:?}.", tok, fd);
         if settings.encrypt_server {
             return Err(Error::new(Kind::Protocol, "The ssl feature is not enabled. Please enable it to use wss urls."))
         }
@@ -279,8 +280,7 @@ impl<F> Handler<F>
         ).map_err(Error::from).or_else(|err| {
             error!("Encountered error while trying to build WebSocket connection: {}", err);
             self.connections[tok].error(err);
-            let handler = self.connections.remove(tok).unwrap().consume();
-            self.factory.connection_lost(handler);
+            self.remove_handle(tok);
             if settings.panic_on_new_connection {
                 panic!("Encountered error while trying to build WebSocket connection.");
             }
