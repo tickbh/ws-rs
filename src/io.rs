@@ -270,6 +270,8 @@ impl<F> Handler<F>
             return Err(Error::new(Kind::Protocol, "The ssl feature is not enabled. Please enable it to use wss urls."))
         }
 
+        println!("Show Webscoket Connections count = {:?}", self.connections.count());
+
         eloop.register(
             self.connections[tok].socket(),
             self.connections[tok].token(),
@@ -343,7 +345,7 @@ impl<F> Handler<F>
 
     #[inline]
     fn check_count(&mut self, eloop: &mut Loop<F>) {
-        trace!("Active connections {:?}", self.connections.count());
+        println!("Ws-rs Active connections {:?}", self.connections.count());
         if self.connections.count() == 0 {
             if !self.state.is_active() {
                 debug!("Shutting down websocket server.");
