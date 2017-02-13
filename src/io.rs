@@ -445,20 +445,24 @@ impl<F> mio::Handler for Handler <F>
                         let conn = &mut self.connections[token];
                         let conn_events = conn.events();
 
+                        let mut is_dead = false;
+
                         if (events & conn_events).is_readable() {
                             if let Err(err) = conn.read() {
-                                conn.error(err)
+                                conn.error(err);
+                                is_dead = true;
                             }
                         }
 
                         if (events & conn_events).is_writable() {
                             if let Err(err) = conn.write() {
-                                conn.error(err)
+                                conn.error(err);
+                                is_dead = true;
                             }
                         }
 
                         // connection events may have changed
-                        conn.events().is_readable() || conn.events().is_writable()
+                        !is_dead && (conn.events().is_readable() || conn.events().is_writable())
                     };
 
                     self.check_active(eloop, active, token)
