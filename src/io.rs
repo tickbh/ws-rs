@@ -270,8 +270,6 @@ impl<F> Handler<F>
             return Err(Error::new(Kind::Protocol, "The ssl feature is not enabled. Please enable it to use wss urls."))
         }
 
-        println!("Ws-rs Show Webscoket Connections count = {:?}", self.connections.count());
-
         eloop.register(
             self.connections[tok].socket(),
             self.connections[tok].token(),
