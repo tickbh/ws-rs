@@ -572,10 +572,12 @@ impl<H> Connection<H>
                     // consume the whole buffer if possible
                     if let Err(err) = self.read_frames() {
                         // break on first IO error, other errors don't imply that the buffer is bad
-                        if let Kind::Io(_) = err.kind {
-                            return Err(err)
-                        }
-                        self.error(err)
+                        // has error frame so will close the io.
+                        // if let Kind::Io(_) = err.kind {
+                        //     return Err(err)
+                        // }
+                        // self.error(err)
+                        return Err(err);
                     }
                 }
                 Ok(())
