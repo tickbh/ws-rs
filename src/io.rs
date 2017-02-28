@@ -404,6 +404,11 @@ impl<F> mio::Handler for Handler <F>
                 }
             }
             _ => {
+                //avoid connections already remove
+                if self.connections.get(token).is_none() {
+                    return;
+                }
+                
                 if events.is_error() {
                     trace!("Encountered error on tcp stream.");
                     if let Err(err) = self.connections[token].socket().take_socket_error() {
@@ -535,8 +540,20 @@ impl<F> mio::Handler for Handler <F>
                             Ok(timeout) => {
                                 for conn in self.connections.iter_mut() {
                                     if let Err(err) = conn.new_timeout(event, timeout) {
-                                        conn.error(err)
+                                        dead.push((conn.token(), err));
                                     }
+                                }
+
+                                let mut token_dead = ::std::collections::HashSet::<mio::Token>::new();
+                                for (token, err) in dead {
+                                    token_dead.insert(token);
+                                    // note the same connection may be called twice
+                                    self.connections[token].error(err);
+                                }
+
+                                for token in &token_dead {
+                                    let handler = self.connections.remove(*token).unwrap().consume();
+                                    self.factory.connection_lost(handler);
                                 }
                             }
                             Err(err) => {
