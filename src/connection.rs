@@ -928,7 +928,9 @@ impl<H> Connection<H>
             // We are initiating a closing handshake.
             Open => self.state = AwaitingClose,
             Connecting(_, _) => {
-                debug_assert!(false, "Attempted to close connection while not yet open.")
+                self.disconnect();
+                return Ok(self.check_events());
+                // debug_assert!(false, "Attempted to close connection while not yet open.")
             }
         }
 

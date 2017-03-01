@@ -408,7 +408,7 @@ impl<F> mio::Handler for Handler <F>
                 if self.connections.get(token).is_none() {
                     return;
                 }
-                
+
                 if events.is_error() {
                     trace!("Encountered error on tcp stream.");
                     if let Err(err) = self.connections[token].socket().take_socket_error() {
@@ -682,16 +682,14 @@ impl<F> mio::Handler for Handler <F>
                     }
                 }
 
-                if is_dead {
-                    self.remove_handle(token);
-                    return;
-                }
+
 
                 if let Some(_) = self.connections.get(token) {
-                    if let Err(err) = self.schedule(eloop, &self.connections[token]) {
-                        self.connections[token].error(err);
-                        self.remove_handle(token);
-                    }
+                    let active = {
+                        let conn = &mut self.connections[token];
+                        !is_dead && (conn.events().is_readable() || conn.events().is_writable())
+                    };
+                    self.check_active(eloop, active, token)
                 }
             }
         }
