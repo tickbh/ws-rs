@@ -291,6 +291,9 @@ impl<F> Handler<F>
     #[inline]
     fn schedule(&self, eloop: &mut Loop<F>, conn: &Conn<F>) -> Result<()> {
         trace!("Scheduling connection to {} as {:?}", conn.socket().peer_addr().map(|addr| addr.to_string()).unwrap_or("UNKNOWN".into()), conn.events());
+        if !conn.events().is_readable() && !conn.events().is_writable() {
+            return Err(Error::new(Kind::Protocol, "the event is not read and not write"))
+        }
         Ok(try!(eloop.reregister(
             conn.socket(),
             conn.token(),
