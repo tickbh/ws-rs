@@ -479,7 +479,10 @@ impl<H> Connection<H>
         if let Connecting(ref mut req, ref mut res) = self.state {
             match self.endpoint {
                 Server => {
-                    if let Some(_) = try!(self.socket.try_read_buf(req.get_mut())) {
+                    if let Some(len) = try!(self.socket.try_read_buf(req.get_mut())) {
+                        if len == 0 {
+                            return Err(Error::new(Kind::Internal, "Read Empty Size"));
+                        }
                         if let Some(ref request) = try!(Request::parse(req.get_ref())) {
                             trace!("Handshake request received: \n{}", request);
                             let response = try!(self.handler.on_request(request));
@@ -568,7 +571,10 @@ impl<H> Connection<H>
                 self.read_handshake()
             } else {
                 trace!("Ready to read messages from {}.", self.peer_addr());
-                if let Some(_) = try!(self.buffer_in()) {
+                if let Some(len) = try!(self.buffer_in()) {
+                    if len == 0 {
+                        return Err(Error::new(Kind::Internal, "Read Empty Size"));
+                    }
                     // consume the whole buffer if possible
                     if let Err(err) = self.read_frames() {
                         // break on first IO error, other errors don't imply that the buffer is bad
@@ -1023,7 +1029,7 @@ impl<H> Connection<H>
         }
 
         if sum == 0 {
-            Ok(None)
+            Ok(Some(0))
         } else {
             Ok(Some(sum))
         }
