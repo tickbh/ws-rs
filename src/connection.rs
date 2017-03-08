@@ -421,6 +421,7 @@ impl<H> Connection<H>
                     if !done {
                         return Ok(())
                     }
+                    self.events.remove(EventSet::writable());
                 }
                 Client =>  {
                     if let Some(_) = try!(self.socket.try_write_buf(req)) {
@@ -946,7 +947,7 @@ impl<H> Connection<H>
             try!(self.buffer_frame(frame));
         }
 
-        trace!("Connection to {} is now closing.", self.peer_addr());
+        trace!("Connection to {} is now closing. State is {:?}", self.peer_addr(), self.state);
 
         Ok(self.check_events())
     }
@@ -956,6 +957,8 @@ impl<H> Connection<H>
             self.events.insert(EventSet::readable());
             if self.out_buffer.position() < self.out_buffer.get_ref().len() as u64 {
                 self.events.insert(EventSet::writable());
+            } else {
+                self.events.remove(EventSet::writable());
             }
         }
     }
